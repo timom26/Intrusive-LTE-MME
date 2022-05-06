@@ -13,7 +13,7 @@ class EPCServer:
     fd = None
     addr = None
     state = EPC_state_machine()
-
+    IMSI_output = None
 
     def init_server(self):
         """Creates server socket and saves the socket in the EPCServer obj"""
@@ -23,11 +23,12 @@ class EPCServer:
         fd,addr = sctp_socket.accept()
         self.fd = fd
         self.addr = addr
+        if IMSI_output == None:
+            IMSI_output = open("IMSI_output.txt","w")
         return 
     def close_server(self):
         """Closes the saved socket connections in EPCServer"""
-        self.sctp_socket.close()
-        #EPC_state_machine.state.set_next_state("null_state")
+        self.fd.close()
         # EPCServer.sctp_socket = None
         # EPCServer.fd = None
         # EPCServer.addr = None

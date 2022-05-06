@@ -27,19 +27,19 @@ if __name__ == "__main__":
                         elif procedure == 'InitialUEMessage':
                             parser.InitialUEMessage(epcServer,protocolIEs_list)
                         else:
-                            for i in protocolIEs_list:
-                                print(i)
+                            pass#no need to implement others
                     elif type == 'successfulOutcome':
-                        procedure, protocolIEs_list = value['value'][0], value['value'][1]['protocolIEs']
-                        if procedure == 'S1SetupResponse':
-                            raise Exception("received message that should be sent by us, not to us")
-                        else:
-                            print("it is not that but instead is",procedure)
-                            for i in protocolIEs_list:
-                                print(i)
+                        pass
+                        #procedure, protocolIEs_list = value['value'][0], value['value'][1]['protocolIEs']
+                        # if procedure == 'S1SetupResponse':
+                        #     raise Exception("received message that should be sent by us, not to us")
+                        # else:
+                        #     print("it is not that but instead is",procedure)
+                        #     for i in protocolIEs_list:
+                        #         print(i)
                     elif type == 'unsuccessfulOutcome':
                         if procedure == 'S1SetupFailure':
                             pass
-            epcServer.close_server()
+        epcServer.close_server()
             
     

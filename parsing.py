@@ -11,6 +11,8 @@ from numpy import empty
 
 import sys
 
+attach_reject_reason = 8
+
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
@@ -113,6 +115,7 @@ class parsing:
             (246,'ignore'),
             (250,'ignore'),
         ]
+        print("in initial UE message parser")
         if not parsing.checkIE_accepted(protocolIEs_list,list_of_mandatory_IEs,list_of_optional_IEs):
             eprint("invalid message, skipping it")
         for i in protocolIEs_list:
@@ -124,14 +127,19 @@ class parsing:
                 msg, err = pycrate_mobile.NAS.parse_NAS_MO(value)#MobileOriginating decode
                 if err:
                     raise Exception("Decoding of incoming MO failed")
-                if msg['EMMHeader']['Type'].get_val() != 65:#Attach request 
-                    print("not initial message")
-                    pass
-                ident_type, code = msg['EPSID'][1].decode()
-                if ident_type == 1:
-                    print("imsi is ",code)
-                else:
-                    print("unknown code, ",code)
+                nasType = msg['EMMHeader']['Type'].get_val()
+                if nasType == 65:#Attach request 
+                    ident_type, code = msg['EPSID'][1].decode()
+                    if ident_type == 1:
+                        ##TODO write out imsi together with time
+                        print("imsi is ",code)
+                        epcServer.IMSI_output.write(time.time()," ",code,"\n")
+                    else:
+                        parsing.send_identityRequest(epcServer)##todo await response
+                    parsing.send_attachReject(epcServer,attach_reject_reason)
+                if nasType == 80:#TAU request
+                    parsing.send_TAUReject(epcServer)
+
 
 
                 #print("this is id type and its value: ",msg['EPSID'][0],msg['EPSID'][1])
@@ -140,10 +148,6 @@ class parsing:
 
                 ########################    N E W   M E S A G G E    ##########################
 
-                #parsing.send_attachReject(epcServer,8)
-                #parsing.send_identityResponse(epcServer)
-                #parsing.send_TAURequest(epcServer)
-                parsing.send_TAUReject(epcServer)
 
     ############  D E F I N I T I O N S  ######################################################
     ##TAU NAS
@@ -166,10 +170,10 @@ class parsing:
     def create_NAS_only_identityRequest():
         return pycrate_mobile.NAS.EMMIdentityRequest().to_bytes()
     ##identity message
-    def sendIdentityRequest(epcServer):
+    def send_identityRequest(epcServer):
         parsing.create_NAS_PDU_downlink(epcServer,parsing.create_NAS_only_identityRequest())
     def send_identityResponse(epcServer):
-        parsing.create_NAS_PDU_downlink(epcServer,parsing.create_NAS_only_identityResponse())
+        parsing.create_NAS_PDU_uplink(epcServer,parsing.create_NAS_only_identityResponse())
     ##attach NAS
     def create_NAS_only_attachReject(val: int):
         """creates a NAS message of Attach reject with a fixed cause -> 
@@ -189,9 +193,19 @@ class parsing:
         #6 Illegal ME
         #7 EPS services not allowed
         #8 EPS services and non-EPS services not allowed
+        #111 Protocol error, unspecified
         """
         parsing.create_NAS_PDU_downlink(epcServer,parsing.create_NAS_only_attachReject(reason))
     ##create S1 encapsulation message
+    def create_NAS_PDU_uplink(epcServer,nas_param):
+        IEs = []
+        IEs.append({'id': 0, 'criticality': 'reject', 'value': ('MME-UE-S1AP-ID', 1)})
+        IEs.append({'id': 8, 'criticality': 'reject', 'value': ('ENB-UE-S1AP-ID', 1)})
+        IEs.append({'id': 26, 'criticality': 'reject', 'value': ('NAS-PDU', nas_param)})
+        val = ('initiatingMessage', {'procedureCode': 13, 'criticality': 'ignore', 'value': ('DownlinkNASTransport', {'protocolIEs': IEs })})
+        PDU = S1AP.S1AP_PDU_Descriptions.S1AP_PDU
+        PDU.set_val(val)
+        epcServer.send_packet(PDU.to_aper().hex())
     def create_NAS_PDU_downlink(epcServer,nas_param):#TODO add variable IDs
         """Creates a NAS-PDU downlink message for S1AP protocol. 
         Encapsulates a NAS message for communication between MME and UE"""
@@ -203,3 +217,9 @@ class parsing:
         PDU = S1AP.S1AP_PDU_Descriptions.S1AP_PDU
         PDU.set_val(val)
         epcServer.send_packet(PDU.to_aper().hex())
+
+
+                #parsing.send_attachReject(epcServer,8)
+                #parsing.send_identityResponse(epcServer)
+                #parsing.send_TAURequest(epcServer)
+                #parsing.send_TAUReject(epcServer)
