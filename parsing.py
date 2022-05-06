@@ -1,3 +1,4 @@
+from __future__ import print_function
 from binascii import unhexlify, hexlify
 from logging import critical
 from re import I
@@ -8,8 +9,14 @@ from matplotlib.pyplot import show
 import pycrate_mobile.NAS
 from numpy import empty
 
+import sys
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
 class parsing:
     def checkIE_accepted(protocolIEs_list,list_of_mandatory_IEs,list_of_optional_IEs) -> bool:
+        """check if all Mandatory IEs are present"""
         mandatory_IEs_and_their_presence = copy.deepcopy(list_of_mandatory_IEs)
         optional_IEs_and_their_presence = copy.deepcopy(list_of_optional_IEs)
         for IE in protocolIEs_list:
@@ -20,32 +27,23 @@ class parsing:
                 if tmpIE in mandatory_IEs_and_their_presence:
                     mandatory_IEs_and_their_presence.remove(tmpIE)
                 else:
-                    raise Exception("mandatory IE was there twice")
+                    eprint("mandatory IE was there twice")
+                    return False
             elif tmpIE in list_of_optional_IEs:
                 if tmpIE in optional_IEs_and_their_presence:
                     optional_IEs_and_their_presence.remove(tmpIE)
                 else:
-                    raise Exception("optional IE was there twice")
+                    eprint("optional IE was there twice")
+                    return False
             else:
-                raise Exception("unknown IE: ",tmpIE)
+                eprint("unknown IE: ",tmpIE)
+                return False
         if mandatory_IEs_and_their_presence:
-            raise Exception("not all Mandatory IEs present")
-        print("checkIE succ")
+            eprint("not all Mandatory IEs present")
+            return False
         return True
     def S1SetupRequest(EPC_server,protocolIEs_list):
-        """
-        mandatory IEs are 
-            59 Global ENBID
-            64 Supported TAs
-                1-256 TAC, for every TAC there are 1-6 Broadcast PLMN identities
-            137 Default paging DRX
-        Optional IEs are
-            60 ENB name
-            232 RAT type (associated with the TAC of the indicated PLMNs)
-            228 UE retention information
-            127 Closed subscriber group
-            234 NB iot default paging drx
-        """
+        """Parse a S1 Setup request and establish a connection """
         print('S1SetupRequest')
         list_of_mandatory_IEs = [
             (59, 'reject'),
@@ -64,26 +62,24 @@ class parsing:
             id = i['id']
             criticality = i['criticality']
             value = i['value'][1]
-            print('id',id)
-            print(criticality)
-            print(value)
-            if id == 59:
-                print(value['pLMNidentity'])
-                print(value['eNB-ID'])
+            # print('id',id)
+            # print(criticality)
+            # print(value)
+            # if id == 59:
+            #     print(value['pLMNidentity'])
+            #     print(value['eNB-ID'])
         return True
     def S1SetupResponse (epcServer, success):
         """
         Creates and sends a S1SetupResponse or S1SetupFailure
         """
         if success:
-            print("succ s1setup response ")
             IEs = []
             IEs.append({'id': 105, 'criticality': 'reject', 'value': ('ServedGUMMEIs', [{'servedPLMNs': [b'\x00\xf1\x10'], 'servedGroupIDs': [b'\x01\x00'], 'servedMMECs': [b'\x1a']}])})
             IEs.append({'id': 87, 'criticality': 'ignore', 'value': ('RelativeMMECapacity', 255)})
             val = ('successfulOutcome', {'procedureCode': 17, 'criticality': 'ignore', 'value': ('S1SetupResponse', {'protocolIEs': IEs })})
             epcServer.encode_and_send_packet(val)
         else:#failed 
-            print("failed s1setup response ")
             IEs = []
             #cause
             IEs.append({'id': 2, 'criticality': 'ignore','value': ('Cause', ('misc', 'unspecified'))})
@@ -91,6 +87,7 @@ class parsing:
             epcServer.encode_and_send_packet(val)
 
     def InitialUEMessage(epcServer,protocolIEs_list):
+        """Parse Initial UE message, and invoke NAS methods"""
         list_of_mandatory_IEs = [
             (8,'reject'),
             (26,'reject'),
@@ -115,8 +112,8 @@ class parsing:
             (246,'ignore'),
             (250,'ignore'),
         ]
-        parsing.checkIE_accepted(protocolIEs_list,list_of_mandatory_IEs,list_of_optional_IEs)
-        print("here")
+        if not parsing.checkIE_accepted(protocolIEs_list,list_of_mandatory_IEs,list_of_optional_IEs):
+            eprint("invalid message, skipping it")
         for i in protocolIEs_list:
             id = i['id']            
             criticality = i['criticality']
@@ -140,17 +137,12 @@ class parsing:
                 #pycrate_mobile.NAS.show(msg._opts)
                 #sprint(msg['EPSID']['Type'])
 
-
                 ########################    N E W   M E S A G G E    ##########################
 
                 #parsing.send_attachReject(epcServer,8)
                 #parsing.send_identityResponse(epcServer)
-                parsing.send_TAURequest(epcServer)
-                #parsing.send_TAUReject(epcServer)
-
-
-
-
+                #parsing.send_TAURequest(epcServer)
+                parsing.send_TAUReject(epcServer)
 
     ############  D E F I N I T I O N S  ######################################################
     ##TAU NAS
@@ -158,32 +150,29 @@ class parsing:
         return pycrate_mobile.NAS.EMMTrackingAreaUpdateRequest().to_bytes()
     def create_NAS_only_TAUReject():
         msg = pycrate_mobile.NAS.EMMTrackingAreaUpdateReject()
-        msg[1].set_val([b'\x09'])
+        msg[1].set_val([b'\x09'])##hardcoded Cause #9: UE identity cannot be derived by the network.
         return msg.to_bytes()
     ##TAU MSG
     def send_TAUReject(epcServer):
-        nas_param = parsing.create_NAS_only_TAUReject()
-        parsing.create_NAS_PDU_downlink(epcServer,nas_param)
+        parsing.create_NAS_PDU_downlink(epcServer,parsing.create_NAS_only_TAUReject())
     def send_TAURequest(epcServer):
-        nas_param = parsing.create_NAS_only_TAURequest()
-        parsing.create_NAS_PDU_downlink(epcServer,nas_param)
+        parsing.create_NAS_PDU_downlink(epcServer,parsing.create_NAS_only_TAURequest())
     ##identity NAS
     def create_NAS_only_identityResponse():
         msg = pycrate_mobile.NAS.EMMIdentityResponse()
-        #msg['ID'].set_val([5, b'\x01\x23\x32\x01\x00\x22\x31'])
         msg['ID'].set_IE(val={'type': 1, 'ident': '208100123456789'}) 
         return msg.to_bytes()
     def create_NAS_only_identityRequest():
         return pycrate_mobile.NAS.EMMIdentityRequest().to_bytes()
     ##identity message
     def sendIdentityRequest(epcServer):
-        nas_param = parsing.create_NAS_only_identityRequest()
-        parsing.create_NAS_PDU_downlink(epcServer,nas_param)
+        parsing.create_NAS_PDU_downlink(epcServer,parsing.create_NAS_only_identityRequest())
     def send_identityResponse(epcServer):
-        nas_param = parsing.create_NAS_only_identityResponse()
-        parsing.create_NAS_PDU_downlink(epcServer,nas_param)
+        parsing.create_NAS_PDU_downlink(epcServer,parsing.create_NAS_only_identityResponse())
     ##attach NAS
     def create_NAS_only_attachReject(val: int):
+        """creates a NAS message of Attach reject with a fixed cause -> 
+        Cause #7 - UE identity cannot be derived by the network."""
         if val > 255 or val < 0: #just to be sure
             raise Exception("illegal cause code for Attach reject")
         msg = pycrate_mobile.NAS.EMMAttachReject()
@@ -193,11 +182,18 @@ class parsing:
         return msg.to_bytes()
     ##attach message
     def send_attachReject(epcServer,reason):
-        nas_param = parsing.create_NAS_only_attachReject(reason)
-        parsing.create_NAS_PDU_downlink(epcServer,nas_param)
-    
+        """Sends an attach reject message with the given cause.
+        Interesting causes for attach reject:
+        #3 Illegal UE
+        #6 Illegal ME
+        #7 EPS services not allowed
+        #8 EPS services and non-EPS services not allowed
+        """
+        parsing.create_NAS_PDU_downlink(epcServer,parsing.create_NAS_only_attachReject(reason))
     ##create S1 encapsulation message
     def create_NAS_PDU_downlink(epcServer,nas_param):#TODO add variable IDs
+        """Creates a NAS-PDU downlink message for S1AP protocol. 
+        Encapsulates a NAS message for communication between MME and UE"""
         IEs = []
         IEs.append({'id': 0, 'criticality': 'reject', 'value': ('MME-UE-S1AP-ID', 1)})
         IEs.append({'id': 8, 'criticality': 'reject', 'value': ('ENB-UE-S1AP-ID', 1)})
@@ -205,5 +201,4 @@ class parsing:
         val = ('initiatingMessage', {'procedureCode': 11, 'criticality': 'ignore', 'value': ('DownlinkNASTransport', {'protocolIEs': IEs })})
         PDU = S1AP.S1AP_PDU_Descriptions.S1AP_PDU
         PDU.set_val(val)
-        print(PDU.to_asn1())
         epcServer.send_packet(PDU.to_aper().hex())
