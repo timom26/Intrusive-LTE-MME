@@ -27,7 +27,7 @@ fromaddr, flags, msgret, notif = sctp_socket.sctp_recv(2048)
 
 #identity response
 #000d401f000003000000020001000800020001001a000c0b0756082980011032547698
-sctp_socket.sctp_send(bytes.fromhex("000d401f000003000000020001000800020001001a000c0b0756082980011032547698"), ppid=socket.htonl(18))
+#sctp_socket.sctp_send(bytes.fromhex("000d401f000003000000020001000800020001001a000c0b0756082980011032547698"), ppid=socket.htonl(18))
 while (True):
     fromaddr, flags, msgret, notif = sctp_socket.sctp_recv(2048)
 

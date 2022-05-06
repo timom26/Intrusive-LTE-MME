@@ -23,8 +23,8 @@ class EPCServer:
         fd,addr = sctp_socket.accept()
         self.fd = fd
         self.addr = addr
-        if IMSI_output == None:
-            IMSI_output = open("IMSI_output.txt","w")
+        if self.IMSI_output == None:
+            self.IMSI_output = open("IMSI_output.txt","w")
         return 
     def close_server(self):
         """Closes the saved socket connections in EPCServer"""
