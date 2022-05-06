@@ -144,18 +144,45 @@ class parsing:
                 ########################    N E W   M E S A G G E    ##########################
 
                 #parsing.send_attachReject(epcServer,8)
-                parsing.sendIdentityRequest(epcServer)
+                #parsing.send_identityResponse(epcServer)
+                parsing.send_TAURequest(epcServer)
+                #parsing.send_TAUReject(epcServer)
 
 
 
 
 
-
-    def create_NAS_only_identityRequest():
-        msg = pycrate_mobile.NAS.MMIdentityRequest()
-        print(msg)
+    ############  D E F I N I T I O N S  ######################################################
+    ##TAU NAS
+    def create_NAS_only_TAURequest():
+        return pycrate_mobile.NAS.EMMTrackingAreaUpdateRequest().to_bytes()
+    def create_NAS_only_TAUReject():
+        msg = pycrate_mobile.NAS.EMMTrackingAreaUpdateReject()
+        msg[1].set_val([b'\x09'])
         return msg.to_bytes()
-
+    ##TAU MSG
+    def send_TAUReject(epcServer):
+        nas_param = parsing.create_NAS_only_TAUReject()
+        parsing.create_NAS_PDU_downlink(epcServer,nas_param)
+    def send_TAURequest(epcServer):
+        nas_param = parsing.create_NAS_only_TAURequest()
+        parsing.create_NAS_PDU_downlink(epcServer,nas_param)
+    ##identity NAS
+    def create_NAS_only_identityResponse():
+        msg = pycrate_mobile.NAS.EMMIdentityResponse()
+        #msg['ID'].set_val([5, b'\x01\x23\x32\x01\x00\x22\x31'])
+        msg['ID'].set_IE(val={'type': 1, 'ident': '208100123456789'}) 
+        return msg.to_bytes()
+    def create_NAS_only_identityRequest():
+        return pycrate_mobile.NAS.EMMIdentityRequest().to_bytes()
+    ##identity message
+    def sendIdentityRequest(epcServer):
+        nas_param = parsing.create_NAS_only_identityRequest()
+        parsing.create_NAS_PDU_downlink(epcServer,nas_param)
+    def send_identityResponse(epcServer):
+        nas_param = parsing.create_NAS_only_identityResponse()
+        parsing.create_NAS_PDU_downlink(epcServer,nas_param)
+    ##attach NAS
     def create_NAS_only_attachReject(val: int):
         if val > 255 or val < 0: #just to be sure
             raise Exception("illegal cause code for Attach reject")
@@ -164,8 +191,13 @@ class parsing:
         tmp_list.append(val.to_bytes(1,byteorder='big'))
         msg['EMMCause'].set_val(tmp_list)
         return msg.to_bytes()
+    ##attach message
+    def send_attachReject(epcServer,reason):
+        nas_param = parsing.create_NAS_only_attachReject(reason)
+        parsing.create_NAS_PDU_downlink(epcServer,nas_param)
     
-    def create_NAS_PDU_downlink(epcServer,nas_param):
+    ##create S1 encapsulation message
+    def create_NAS_PDU_downlink(epcServer,nas_param):#TODO add variable IDs
         IEs = []
         IEs.append({'id': 0, 'criticality': 'reject', 'value': ('MME-UE-S1AP-ID', 1)})
         IEs.append({'id': 8, 'criticality': 'reject', 'value': ('ENB-UE-S1AP-ID', 1)})
@@ -175,11 +207,3 @@ class parsing:
         PDU.set_val(val)
         print(PDU.to_asn1())
         epcServer.send_packet(PDU.to_aper().hex())
-    def sendIdentityRequest(epcServer):
-        nas_param = parsing.create_NAS_only_identityRequest()
-        #epcServer.send_packet(nas_param.hex())
-        #parsing.create_NAS_PDU_downlink(epcServer,nas_param)
-
-    def send_attachReject(epcServer,reason):
-        nas_param = parsing.create_NAS_only_attachReject(reason)
-        parsing.create_NAS_PDU_downlink(epcServer,nas_param)
