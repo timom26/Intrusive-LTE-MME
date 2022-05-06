@@ -80,6 +80,7 @@ class parsing:
             val = ('successfulOutcome', {'procedureCode': 17, 'criticality': 'ignore', 'value': ('S1SetupResponse', {'protocolIEs': IEs })})
             epcServer.encode_and_send_packet(val)
         else:#failed 
+            print("failed s1setup response ")
             IEs = []
             #cause
             IEs.append({'id': 2, 'criticality': 'ignore','value': ('Cause', ('misc', 'unspecified'))})
