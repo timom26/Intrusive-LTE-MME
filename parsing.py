@@ -15,7 +15,7 @@ import sys
 
 from thecalm_impl import EPCServer
 # see attach reject commentary
-attach_reject_reason = 111
+attach_reject_reason = 8
 
 
 def eprint(*args, **kwargs):
@@ -146,9 +146,8 @@ class parsing:
                 else:
                     print(type(msg))
     def decide_attach(epcServer,code,enb_ue_id):
-        print("DECIDING")
         if epcServer.omit != None and code in epcServer.omit:
-            parsing.send_attachReject(epcServer, attach_reject_reason, 111)
+            parsing.send_attachReject(epcServer, 111, enb_ue_id)
         elif epcServer.omit != None and code not in epcServer.omit:
             parsing.send_attachReject(epcServer, attach_reject_reason, enb_ue_id)
         elif epcServer.target != None and code in epcServer.target:
