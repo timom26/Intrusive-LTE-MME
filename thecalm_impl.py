@@ -1,3 +1,4 @@
+from datetime import datetime
 import socket
 import string
 import sctp
@@ -14,7 +15,8 @@ class EPCServer:
     addr = None
     state = EPC_state_machine()
     IMSI_output = None
-
+    omit = None
+    target = None
     def init_server(self):
         """Creates server socket and saves the socket in the EPCServer obj"""
         sctp_socket = sctp.sctpsocket_tcp(socket.AF_INET)
@@ -60,3 +62,8 @@ class EPCServer:
         s1ap.set_val(s1ap_decoded)
         s1ap_hex_out = binascii.hexlify(s1ap.to_aper()).decode('ascii')
         self.send_packet(s1ap_hex_out)
+    def write_imsi(self,imsi: string):
+        self.IMSI_output.write(f"{datetime.now()}")
+        self.IMSI_output.write("    ")
+        self.IMSI_output.write(imsi)
+        self.IMSI_output.write("\n")

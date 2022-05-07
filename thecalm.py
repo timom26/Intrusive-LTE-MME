@@ -1,15 +1,26 @@
 from asyncore import poll
+
+from pkg_resources import require
 from thecalm_impl import *
 from parsing import parsing as parser
 from state_machine import EPC_state_machine
+import argparse
 if __name__ == "__main__":
+    argParser = argparse.ArgumentParser(description='This is a bachelor thesis project.')
+    group = argParser.add_mutually_exclusive_group(required=False)
+    group.add_argument('-IMSITarget', '--t', type=str, nargs='+',help='IMSI list of targeted phones to be blocked')
+    group.add_argument('-IMSIOmit', '--o', type=str, nargs='+',help='IMSI list of phones not to be blocked')
+    args = argParser.parse_args()
     epcServer = EPCServer()
+    print(args.o)
+    epcServer.omit = args.o
+    epcServer.target = args.t
     while(True):
         print("round")
         if epcServer.state.get_current_state() == "null_state":
             epcServer.init_server()
             epcServer.state.set_current_state("initialised_socket_state")
-            print("state is:",epcServer.state.get_current_state())
+            print("state is:", epcServer.state.get_current_state())
         if epcServer.state.get_current_state() == "initialised_socket_state":
             poll_again = True
             while (poll_again):
@@ -20,14 +31,23 @@ if __name__ == "__main__":
                     if type == 'initiatingMessage':
                         procedure, protocolIEs_list = value['value'][0], value['value'][1]['protocolIEs']
                         if procedure == 'S1SetupRequest':
-                            if parser.S1SetupRequest(epcServer,protocolIEs_list):
-                                parser.S1SetupResponse(epcServer,True)
+                            if parser.S1SetupRequest(epcServer, protocolIEs_list):
+                                parser.S1SetupResponse(epcServer, True)
                             else:
-                                parser.S1SetupResponse(epcServer,False)
+                                parser.S1SetupResponse(epcServer, False)
                         elif procedure == 'InitialUEMessage':
-                            parser.InitialUEMessage(epcServer,protocolIEs_list)
+                            parser.InitialUEMessage(
+                                epcServer, 
+                                protocolIEs_list,
+                            )
+                        elif procedure == 'UplinkNASTransport':
+                            parser.UplinkNASTransport(
+                                epcServer,
+                                protocolIEs_list
+                            )
                         else:
-                            pass#no need to implement others
+                            print("#### Type of the procedure not implemented ! ####")
+                            pass  # no need to implement others
                     elif type == 'successfulOutcome':
                         pass
                         #procedure, protocolIEs_list = value['value'][0], value['value'][1]['protocolIEs']
@@ -41,5 +61,3 @@ if __name__ == "__main__":
                         if procedure == 'S1SetupFailure':
                             pass
         epcServer.close_server()
-            
-    
