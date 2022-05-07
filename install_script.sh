@@ -1,16 +1,16 @@
 #!/bin/sh
 sudo apt install python3
 #install srsran dependencies
-sudo apt-get install build-essential cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev
+sudo apt-get install -y build-essential make cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev
 #install pysctp
 git clone https://github.com/P1sec/pysctp.git
 cd pysctp
-sudo python setup.py install
+sudo python3 setup.py install
 cd ..
 #install pycrate
 git clone https://github.com/P1sec/pycrate.git
 cd pycrate
-python setup.py install
+sudo python3 setup.py install
 cd ..
 
 
@@ -20,7 +20,7 @@ sudo apt-get install libusb
 cd bladeRF
 mkdir -p build
 cd build
-cmake [options] ../
+cmake ../
 make
 sudo make install
 sudo ldconfig
@@ -29,7 +29,7 @@ cd ..
 
 
 #soapySDR
-sudo apt-get install cmake g++ libpython3-dev python3-numpy swig
+sudo apt-get install -y cmake g++ libpython3-dev python3-numpy swig
 git clone https://github.com/pothosware/SoapySDR.git
 cd SoapySDR
 mkdir build
@@ -38,8 +38,9 @@ cmake ..
 make -j4
 sudo make install
 sudo ldconfig #needed on debian systems
-SoapySDRUtil --info
-
+#SoapySDRUtil --info
+cd ..
+cd ..
 
 #download and build srsRAN
 git clone https://github.com/srsRAN/srsRAN.git
