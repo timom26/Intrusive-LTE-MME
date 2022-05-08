@@ -3,6 +3,7 @@ sudo apt install python3
 #install srsran dependencies
 sudo apt-get install -y build-essential make cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev
 #install pysctp
+sudo apt install -y libsctp-dev python3-dev g++
 git clone https://github.com/P1sec/pysctp.git
 cd pysctp
 sudo python3 setup.py install
@@ -16,7 +17,7 @@ cd ..
 
 #download and install bladeRF drivers and cli
 git clone https://github.com/Nuand/bladeRF.git
-sudo apt-get install libusb
+sudo apt-get install -y libusb-dev 
 cd bladeRF
 mkdir -p build
 cd build

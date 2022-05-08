@@ -1,9 +1,5 @@
-from asyncore import poll
-
-from pkg_resources import require
 from thecalm_impl import *
 from parsing import parsing as parser
-from state_machine import EPC_state_machine
 import argparse
 if __name__ == "__main__":
     argParser = argparse.ArgumentParser(description='This is a bachelor thesis project.')
@@ -50,13 +46,6 @@ if __name__ == "__main__":
                             pass  # no need to implement others
                     elif type == 'successfulOutcome':
                         pass
-                        #procedure, protocolIEs_list = value['value'][0], value['value'][1]['protocolIEs']
-                        # if procedure == 'S1SetupResponse':
-                        #     raise Exception("received message that should be sent by us, not to us")
-                        # else:
-                        #     print("it is not that but instead is",procedure)
-                        #     for i in protocolIEs_list:
-                        #         print(i)
                     elif type == 'unsuccessfulOutcome':
                         if procedure == 'S1SetupFailure':
                             pass
