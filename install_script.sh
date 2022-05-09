@@ -2,7 +2,8 @@
 set -ex #exit on error
 sudo apt install python3
 #install srsran dependencies
-sudo apt-get install -y build-essential make cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev lksctp-tools autoconf automake libtool net-tools
+sudo apt-get install -y build-essential make cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev lksctp-tools autoconf automake libtool net-tools python3-pip
+python3 -m pip install setuptools
 #install pysctp
 sudo apt install -y libsctp-dev python3-dev g++
 git clone https://github.com/P1sec/pysctp.git
@@ -12,6 +13,7 @@ cd ..
 #install pycrate
 git clone https://github.com/P1sec/pycrate.git
 cd pycrate
+
 sudo python3 setup.py install
 cd ..
 
@@ -50,7 +52,7 @@ cd ..
 git clone https://github.com/srsRAN/srsRAN.git
 cd srsRAN
 mkdir build
-cd buildf
+cd build
 cmake ../
 make
 make test
