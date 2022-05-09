@@ -1,7 +1,8 @@
 #!/bin/sh
+set -ex #exit on error
 sudo apt install python3
 #install srsran dependencies
-sudo apt-get install -y build-essential make cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev lksctp-tools
+sudo apt-get install -y build-essential make cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev lksctp-tools autoconf automake libtool net-tools
 #install pysctp
 sudo apt install -y libsctp-dev python3-dev g++
 git clone https://github.com/P1sec/pysctp.git
