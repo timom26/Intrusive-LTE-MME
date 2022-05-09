@@ -1,4 +1,4 @@
-from thecalm_impl import *
+from EPC import *
 from parsing import parsing as parser
 import argparse
 if __name__ == "__main__":
@@ -50,3 +50,4 @@ if __name__ == "__main__":
                         if procedure == 'S1SetupFailure':
                             pass
         epcServer.close_server()
+        #exit()

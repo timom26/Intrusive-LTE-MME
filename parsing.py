@@ -1,19 +1,9 @@
 from __future__ import print_function
-from binascii import unhexlify, hexlify
-from datetime import datetime
-from heapq import nsmallest
-from logging import critical
-from re import I
 import copy
-from sys import byteorder
 from pycrate_asn1dir import S1AP
 import pycrate_mobile.NAS
-from pycrate_mobile.NAS import show
-
-from numpy import empty
 import sys
 
-from thecalm_impl import EPCServer
 # see attach reject commentary
 attach_reject_reason = 8
 
@@ -25,14 +15,19 @@ def eprint(*args, **kwargs):
 ############################################################################################
 
 class parsing:
-    def checkIE_accepted(protocolIEs_list, list_of_mandatory_IEs, list_of_optional_IEs) -> bool:
+    def checkIE_accepted(protocolIEs_list: dict, list_of_mandatory_IEs: dict, list_of_optional_IEs: dict) -> bool:
         """check if all Mandatory IEs are present"""
         mandatory_IEs_and_their_presence = copy.deepcopy(list_of_mandatory_IEs)
         optional_IEs_and_their_presence = copy.deepcopy(list_of_optional_IEs)
         for IE in protocolIEs_list:
-            id = IE['id']
-            criticality = IE['criticality']
+            try:
+                id = IE['id']
+                criticality = IE['criticality']
+            except (KeyError, ValueError,TypeError):
+                eprint("error reading parameters that should be there per library. Fatal error, exiting..")
+                exit()
             tmpIE = (id, criticality)
+
             if tmpIE in list_of_mandatory_IEs:
                 if tmpIE in mandatory_IEs_and_their_presence:
                     mandatory_IEs_and_their_presence.remove(tmpIE)
