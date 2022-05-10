@@ -1,5 +1,7 @@
 from __future__ import print_function
 import copy
+
+from numpy import isin
 from pycrate_asn1dir import S1AP
 import pycrate_mobile.NAS
 import sys
@@ -199,12 +201,35 @@ class parsing:
                         epcServer.write_imsi(code)
                         parsing.decide_attach(epcServer,code,enb_ue_id)
                     else:
-                        parsing.send_identityRequest(epcServer, enb_ue_id)  # TODO await response
-                        parsing.send_attachReject(epcServer, enb_ue_id)
+                        print("got here")
+                        parsing.send_identityRequest(epcServer, enb_ue_id)
                 elif type(msg).__name__ == 'EMMSecProtNASMessage':
+                    print("protnas")
                     if any(isinstance(item, pycrate_mobile.NAS.EMMTrackingAreaUpdateRequest) for item in msg): #TAU request
                         print("got TAURequest")
                         parsing.send_TAUReject(epcServer, enb_ue_id)
+                    if any(isinstance(item, pycrate_mobile.NAS.EMMAttachRequest) for item in msg): #attach Request
+                        print("got Attach request")
+                        ident_type = print(msg['EMMAttachRequest']['EPSID'][1]['Type'].get_val())
+                        if ident_type == 1:
+                            ident_type = print(msg['EMMAttachRequest']['EPSID'][1]['IMSI'].get_val())
+                            print("imsi is ", code)
+                            epcServer.write_imsi(code)
+                            parsing.decide_attach(epcServer,code,enb_ue_id)
+                        else:
+                            print("The identity is not IMSI. Sending Identity Request ..")
+                            parsing.send_identityRequest(epcServer, enb_ue_id)  
+                    if any(isinstance(item, pycrate_mobile.NAS.EMMIdentityResponse) for item in msg): #attach Request
+                        print("got identity response")
+                        ident_type = print(msg['EMMIdentityResponse']['EPSID'][1]['Type'].get_val())
+                        if ident_type == 1:
+                            ident_type = print(msg['EMMIdentityResponse']['EPSID'][1]['IMSI'].get_val())
+                            print("imsi is ", code)
+                            epcServer.write_imsi(code)
+                            parsing.decide_attach(epcServer,code,enb_ue_id)
+                        else:
+                            print("The identity is not IMSI. Sending Identity Request ..")
+                            parsing.send_identityRequest(epcServer, enb_ue_id) 
                 else: 
                     print("instead got type ",type(msg).__name__)
                 #print("this is id type and its value: ",msg['EPSID'][0],msg['EPSID'][1])
@@ -222,10 +247,10 @@ class parsing:
     def create_NAS_only_TAURequest():
         return pycrate_mobile.NAS.EMMTrackingAreaUpdateRequest().to_bytes()
 
-    def create_NAS_only_TAUReject():
+    def create_NAS_only_TAUReject(cause):
         msg = pycrate_mobile.NAS.EMMTrackingAreaUpdateReject()
         # hardcoded Cause #9: UE identity cannot be derived by the network.
-        msg[1].set_val([b'\x09'])
+        msg[1].set_val([b'\x08'])#8 eps..
         return msg.to_bytes()
 
 
