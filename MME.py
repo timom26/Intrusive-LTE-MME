@@ -4,15 +4,18 @@ import argparse
 if __name__ == "__main__":
     argParser = argparse.ArgumentParser(description='This is a bachelor thesis project.')
     group = argParser.add_mutually_exclusive_group(required=False)
-    group.add_argument('-IMSITarget', '--t', type=str, nargs='+',help='IMSI list of targeted phones to be blocked')
-    group.add_argument('-IMSIOmit', '--o', type=str, nargs='+',help='IMSI list of phones not to be blocked')
+    group.add_argument('--IMSITarget', '-t', type=str, nargs='+',help='IMSI list of targeted phones to be blocked')
+    group.add_argument('--IMSIOmit', '-o', type=str, nargs='+',help='IMSI list of phones not to be blocked')
+    argParser.add_argument('--address','-a',type=str,help="Change the address on which to listen for connections.")
+    argParser.add_argument('--response','-r',type=int,help="attach reject response code for victims")
     args = argParser.parse_args()
     epcServer = EPCServer()
-    print(args.o)
-    epcServer.omit = args.o
-    epcServer.target = args.t
+    epcServer.omit = args.IMSIOmit
+    epcServer.target = args.IMSITarget
+    if args.address != None:
+        epcServer.listenAddress = args.address
     while(True):
-        print("round")
+        print("Main loop cycle")
         if epcServer.state.get_current_state() == "null_state":
             epcServer.init_server()
             epcServer.state.set_current_state("initialised_socket_state")

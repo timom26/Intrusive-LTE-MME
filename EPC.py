@@ -5,10 +5,8 @@ import sctp
 import binascii
 from state_machine import EPC_state_machine
 from pycrate_asn1dir import S1AP
-# Global options to control the script behavior
-option_print_verbose = True       # print verbose decoding output
-option_fuzzing_messages = False    # fuzz messages before pycrate decoding
-option_reencode = True             # re-encode into hex and compare with the hex input
+
+
 class EPCServer:
     sctp_socket = None
     fd = None
@@ -17,10 +15,12 @@ class EPCServer:
     IMSI_output = None
     omit = None
     target = None
+    listenAddress = "127.0.0.42"
+    attach_reject_reason = 8
     def init_server(self) -> None:
         """Creates server socket and saves the socket in the EPCServer obj"""
         sctp_socket = sctp.sctpsocket_tcp(socket.AF_INET)
-        sctp_socket.bind(("127.0.0.42",36412))
+        sctp_socket.bind((self.listenAddress,36412))
         try:
             sctp_socket.listen(5)
             fd,addr = sctp_socket.accept()
@@ -34,7 +34,8 @@ class EPCServer:
         return 
     def close_server(self) -> None:
         """Closes the saved socket connections in EPCServer"""
-        self.fd.close()
+        if self.fd != None:
+            self.fd.close()
         self.sctp_socket = None
         self.fd = None
         self.addr = None
@@ -44,8 +45,9 @@ class EPCServer:
         try:
             fromaddr, flags, msgret, notif = self.fd.sctp_recv(2048)
         except ConnectionResetError:
-            print("hahahah")
+            print("Connection reset while receiving packet. Closing connection ..")
             self.close_server()
+            return (None,False)
         if len(msgret) == 0:
             return None,False
         s1ap_hex = msgret.hex()

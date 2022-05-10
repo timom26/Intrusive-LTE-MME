@@ -5,7 +5,7 @@ import pycrate_mobile.NAS
 import sys
 
 # see attach reject commentary
-attach_reject_reason = 8
+
 
 
 def eprint(*args, **kwargs):
@@ -144,11 +144,11 @@ class parsing:
         if epcServer.omit != None and code in epcServer.omit:
             parsing.send_attachReject(epcServer, 111, enb_ue_id)
         elif epcServer.omit != None and code not in epcServer.omit:
-            parsing.send_attachReject(epcServer, attach_reject_reason, enb_ue_id)
+            parsing.send_attachReject(epcServer, enb_ue_id)
         elif epcServer.target != None and code in epcServer.target:
-            parsing.send_attachReject(epcServer, attach_reject_reason, enb_ue_id)
+            parsing.send_attachReject(epcServer, enb_ue_id)
         elif epcServer.omit == None and epcServer.target == None:
-            parsing.send_attachReject(epcServer, attach_reject_reason, enb_ue_id)
+            parsing.send_attachReject(epcServer, enb_ue_id)
     def InitialUEMessage(epcServer, protocolIEs_list):
         """Parse Initial UE message, and invoke NAS methods"""
         list_of_mandatory_IEs = [
@@ -200,7 +200,7 @@ class parsing:
                         parsing.decide_attach(epcServer,code,enb_ue_id)
                     else:
                         parsing.send_identityRequest(epcServer, enb_ue_id)  # TODO await response
-                        parsing.send_attachReject(epcServer, attach_reject_reason, enb_ue_id)
+                        parsing.send_attachReject(epcServer, enb_ue_id)
                 elif type(msg).__name__ == 'EMMSecProtNASMessage':
                     if any(isinstance(item, pycrate_mobile.NAS.EMMTrackingAreaUpdateRequest) for item in msg): #TAU request
                         print("got TAURequest")
@@ -268,7 +268,7 @@ class parsing:
         return msg.to_bytes()
     # attach message
 
-    def send_attachReject(epcServer, reason, enb_ue_id):
+    def send_attachReject(epcServer, enb_ue_id):
         """Sends an attach reject message with the given cause.
         Interesting causes for attach reject:
         #3 Illegal UE
@@ -278,7 +278,7 @@ class parsing:
         #111 Protocol error, unspecified
         """
         parsing.create_NAS_PDU_downlink(
-            epcServer, parsing.create_NAS_only_attachReject(reason), enb_ue_id)
+            epcServer, parsing.create_NAS_only_attachReject(epcServer.attach_reject_reason), enb_ue_id)
     # create S1 encapsulation message
 
     def create_NAS_PDU_uplink(epcServer, nas_param, enb_ue_id):
